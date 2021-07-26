@@ -20,6 +20,7 @@ __attribute__((section("i2c_section"))) unsigned char uhsign_key[]="super_secret
 
 __attribute__((aligned(4096))) __attribute__((section("i2c_section_2")))   char encrypted_buffer[4096];
 __attribute__((aligned(4096))) __attribute__((section("i2c_section_3")))  char decrypted_buffer[4096];
+__attribute__((aligned(4096))) __attribute__((section("i2c_section_5")))  char section_array[4096];
 __attribute__((section(".palign_data")))  __attribute__((aligned(4096))) picar_s_param_t upicar;
 __attribute__ ((section("i2c_section"))) static  int uobj_digital_list[NUM_REF]  = {0};
 int uobj_references[NUM_REF] = {200,200,200,200,200};
@@ -157,9 +158,19 @@ int * calculate_angle_speed(char *buffer,int *array,int fw_speed,int turn_angle,
        picar_s_param_t *ptr_upicar = &upicar;
        int i;
        memcpy(encrypted_buffer,buffer,NUM_REF*2 + HMAC_DIGEST_SIZE);
+       memcpy(section_array,array,NUM_REF*2);
        ptr_upicar->encrypted_buffer_va = (uint32_t) encrypted_buffer;
        ptr_upicar->decrypted_buffer_va = (uint32_t) decrypted_buffer;
        ptr_upicar->len = NUM_REF*2;
+       ptr_upicar->array =  (uint32_t) section_array;
+       ptr_upicar->fw_speed =  fw_speed;
+       ptr_upicar->turn_angle = turn_angle;
+       ptr_upicar->st = st;
+       ptr_upicar->out_fw_speed =  (uint32_t) &result_array[0];
+       ptr_upicar->out_st = (uint32_t) &result_array[1];
+       ptr_upicar->out_turn_angle = (uint32_t)  &result_array[2];
+       *((int *)(ptr_upicar->out_st)) = st;
+
        // Perform an uobject call
              if(!uhcall(UAPP_PICAR_S_FUNCTION_TEST, ptr_upicar, sizeof(picar_s_param_t))){
                  //printf("hypercall FAILED\n");
@@ -214,11 +225,11 @@ int * calculate_angle_speed(char *buffer,int *array,int fw_speed,int turn_angle,
                  // }
              }
    #endif
-   calculate_speed(array,NUM_REF,fw_speed,&speed,&step);
-   calculate_angle(array,NUM_REF,&turning_angle,step);
+   //calculate_speed(array,NUM_REF,fw_speed,&speed,&step);
+   //calculate_angle(array,NUM_REF,&turning_angle,step);
    /* Return the other three parameters to the caller (Python) */
-   result_array[0] = speed;
-   result_array[1] = step;
-   result_array[2] = turning_angle;
+   //result_array[0] = speed;
+   //result_array[1] = step;
+   //result_array[2] = turning_angle;
    return result_array;
 }
