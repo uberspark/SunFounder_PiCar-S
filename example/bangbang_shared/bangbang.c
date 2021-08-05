@@ -70,7 +70,7 @@ int * uobj_read_digital(char *buffer){
    result_array[1] - step
    result_array[2] - turn_angle
 */
-__attribute__ ((section("i2c_section_4"))) static  int result_array[8]  = {0};
+__attribute__ ((section("i2c_section_4")))  int result_array[8]  = {0};
 
 /* Private Functions */
 void calculate_speed(int *array,int arr_len,int fw_speed,int *sp, int *st){
@@ -163,13 +163,12 @@ int * calculate_angle_speed(char *buffer,int *array,int fw_speed,int turn_angle,
        ptr_upicar->decrypted_buffer_va = (uint32_t) decrypted_buffer;
        ptr_upicar->len = NUM_REF*2;
        ptr_upicar->array =  (uint32_t) section_array;
-       ptr_upicar->fw_speed =  fw_speed;
+       ptr_upicar->speed =  fw_speed;
        ptr_upicar->turn_angle = turn_angle;
-       ptr_upicar->st = st;
-       ptr_upicar->out_fw_speed =  (uint32_t) &result_array[0];
-       ptr_upicar->out_st = (uint32_t) &result_array[1];
+       ptr_upicar->step = st;
+       ptr_upicar->out_speed =  (uint32_t) &result_array[0];
+       ptr_upicar->out_step = (uint32_t) &result_array[1];
        ptr_upicar->out_turn_angle = (uint32_t)  &result_array[2];
-       *((int *)(ptr_upicar->out_st)) = st;
 
        // Perform an uobject call
              if(!uhcall(UAPP_PICAR_S_FUNCTION_TEST, ptr_upicar, sizeof(picar_s_param_t))){
@@ -177,8 +176,11 @@ int * calculate_angle_speed(char *buffer,int *array,int fw_speed,int turn_angle,
              }
              else{
                  //printf("hypercall SUCCESS\n");
-          memcpy(digest_result,decrypted_buffer,digest_size);
-          digest_size = HMAC_DIGEST_SIZE;
+                 printf("fw_speed %d\n",result_array[0]);
+                 printf("out_step %d\n",result_array[1]);
+                 printf("out_turn_angle %d\n",result_array[2]);
+                 memcpy(digest_result,decrypted_buffer,digest_size);
+                 digest_size = HMAC_DIGEST_SIZE;
              }
 
              // Sleep for 10ms so that an attack can succeed in overwriting bytes in buffer
