@@ -20,7 +20,8 @@ __attribute__((section("i2c_section"))) unsigned char uhsign_key[]="super_secret
 
 __attribute__((aligned(4096))) __attribute__((section("i2c_section_2")))   char encrypted_buffer[4096];
 __attribute__((aligned(4096))) __attribute__((section("i2c_section_3")))  char decrypted_buffer[4096];
-__attribute__((aligned(4096))) __attribute__((section("i2c_section_5")))  char section_array[4096];
+__attribute__((aligned(4096))) __attribute__((section("i2c_section_6")))  char input_params_buffer[4096];
+__attribute__((aligned(4096))) __attribute__((section("i2c_section_7")))  char output_params_buffer[4096];
 __attribute__((section(".palign_data")))  __attribute__((aligned(4096))) picar_s_param_t upicar;
 __attribute__ ((section("i2c_section"))) static  int uobj_digital_list[NUM_REF]  = {0};
 int uobj_references[NUM_REF] = {200,200,200,200,200};
@@ -157,18 +158,19 @@ int * calculate_angle_speed(char *buffer,int *array,int fw_speed,int turn_angle,
    #ifdef UOBJCOLL
        picar_s_param_t *ptr_upicar = &upicar;
        int i;
+       input_params in_params;
+       output_params *out_params;
        memcpy(encrypted_buffer,buffer,NUM_REF*2 + HMAC_DIGEST_SIZE);
-       memcpy(section_array,array,NUM_REF*2);
        ptr_upicar->encrypted_buffer_va = (uint32_t) encrypted_buffer;
        ptr_upicar->decrypted_buffer_va = (uint32_t) decrypted_buffer;
-       ptr_upicar->len = NUM_REF*2;
-       ptr_upicar->array =  (uint32_t) section_array;
-       ptr_upicar->speed =  fw_speed;
-       ptr_upicar->turn_angle = turn_angle;
-       ptr_upicar->step = st;
-       ptr_upicar->out_speed =  (uint32_t) &result_array[0];
-       ptr_upicar->out_step = (uint32_t) &result_array[1];
-       ptr_upicar->out_turn_angle = (uint32_t)  &result_array[2];
+       ptr_upicar->in_params_va = (uint32_t) input_params_buffer;
+       ptr_upicar->out_params_va = (uint32_t) output_params_buffer;
+       in_params.len = NUM_REF*2;
+       memcpy(in_params.array,array,sizeof(int)*NUM_REF);
+       in_params.speed =  fw_speed;
+       in_params.turn_angle = turn_angle;
+       in_params.step = st;
+       memcpy(input_params_buffer,&in_params,sizeof(input_params));
 
        // Perform an uobject call
              if(!uhcall(UAPP_PICAR_S_FUNCTION_TEST, ptr_upicar, sizeof(picar_s_param_t))){
@@ -176,9 +178,9 @@ int * calculate_angle_speed(char *buffer,int *array,int fw_speed,int turn_angle,
              }
              else{
                  //printf("hypercall SUCCESS\n");
-                 printf("fw_speed %d\n",result_array[0]);
-                 printf("out_step %d\n",result_array[1]);
-                 printf("out_turn_angle %d\n",result_array[2]);
+                 //printf("fw_speed %d\n",result_array[0]);
+                 //printf("out_step %d\n",result_array[1]);
+                 //printf("out_turn_angle %d\n",result_array[2]);
                  memcpy(digest_result,decrypted_buffer,digest_size);
                  digest_size = HMAC_DIGEST_SIZE;
              }
@@ -230,8 +232,9 @@ int * calculate_angle_speed(char *buffer,int *array,int fw_speed,int turn_angle,
    //calculate_speed(array,NUM_REF,fw_speed,&speed,&step);
    //calculate_angle(array,NUM_REF,&turning_angle,step);
    /* Return the other three parameters to the caller (Python) */
-   //result_array[0] = speed;
-   //result_array[1] = step;
-   //result_array[2] = turning_angle;
+   out_params = (output_params *) output_params_buffer;
+   result_array[0] = out_params->out_speed;
+   result_array[1] = out_params->out_step;
+   result_array[2] = out_params->out_turning_angle;
    return result_array;
 }
